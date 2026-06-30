@@ -1,6 +1,7 @@
 import * as Device from 'expo-device';
 import { Platform, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Link } from 'expo-router';
 
 import { AnimatedIcon } from '@/components/animated-icon';
 import { HintRow } from '@/components/hint-row';
@@ -48,11 +49,9 @@ export default function HomeScreen() {
             title="Try editing"
             hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
           />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
+          <Link href="/customers" style={{ marginTop: 10, padding: 12, backgroundColor: '#208AEF', color: 'white', borderRadius: 8, textAlign: 'center', fontWeight: 'bold' }}>
+            Go to Customers & Vehicles Module
+          </Link>
         </ThemedView>
 
         {Platform.OS === 'web' && <WebBadge />}
