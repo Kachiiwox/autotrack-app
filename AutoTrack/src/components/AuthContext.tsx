@@ -28,6 +28,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
+        if (currentUser.isAnonymous) {
+          console.log("Anonymous user detected. Signing out...");
+          signOut(auth);
+          setUserProfile(null);
+          setIsLoading(false);
+          return;
+        }
+        
         try {
           const profile = await getMechanicById(currentUser.uid);
           setUserProfile(profile);
