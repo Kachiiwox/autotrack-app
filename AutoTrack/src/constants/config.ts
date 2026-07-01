@@ -1,1 +1,1 @@
-export const WORKSHOP_ID = "pastor-emma-workshop-001";
+export const WORKSHOP_ID = "workshop-1";
