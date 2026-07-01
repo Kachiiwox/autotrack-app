@@ -20,7 +20,7 @@ service cloud.firestore {
 
     match /mechanics/{mechanicId} {
       allow get: if isAuthenticated() && (resource == null || request.auth.uid == mechanicId || belongsToWorkshop(resource.data.workshop_id));
-      allow list: if isAuthenticated() && (request.auth.uid == mechanicId || belongsToWorkshop(resource.data.workshop_id));
+      allow list: if isAuthenticated();
       allow create: if isAuthenticated() && request.auth.uid == mechanicId;
       allow update: if isAuthenticated() && request.auth.uid == mechanicId;
       allow delete: if false;
@@ -28,38 +28,38 @@ service cloud.firestore {
 
     match /customers/{docId} { 
       allow get: if isAuthenticated() && (resource == null || belongsToWorkshop(resource.data.workshop_id)); 
-      allow list: if isAuthenticated() && belongsToWorkshop(resource.data.workshop_id); 
+      allow list: if isAuthenticated(); 
       allow update: if isAuthenticated() && belongsToWorkshop(resource.data.workshop_id);
       allow create: if isAuthenticated() && belongsToWorkshop(request.resource.data.workshop_id);
     }
     match /vehicles/{docId} { 
       allow get: if isAuthenticated() && (resource == null || belongsToWorkshop(resource.data.workshop_id)); 
-      allow list: if isAuthenticated() && belongsToWorkshop(resource.data.workshop_id); 
+      allow list: if isAuthenticated(); 
       allow update: if isAuthenticated() && belongsToWorkshop(resource.data.workshop_id);
       allow create: if isAuthenticated() && belongsToWorkshop(request.resource.data.workshop_id);
     }
     match /repair_jobs/{docId} { 
       allow get: if isAuthenticated() && (resource == null || belongsToWorkshop(resource.data.workshop_id)); 
-      allow list: if isAuthenticated() && belongsToWorkshop(resource.data.workshop_id); 
+      allow list: if isAuthenticated(); 
       allow update: if isAuthenticated() && belongsToWorkshop(resource.data.workshop_id);
       allow create: if isAuthenticated() && belongsToWorkshop(request.resource.data.workshop_id);
     }
     match /work_orders/{docId} { 
       allow get: if isAuthenticated() && (resource == null || belongsToWorkshop(resource.data.workshop_id)); 
-      allow list: if isAuthenticated() && belongsToWorkshop(resource.data.workshop_id); 
+      allow list: if isAuthenticated(); 
       allow update: if isAuthenticated() && belongsToWorkshop(resource.data.workshop_id);
       allow create: if isAuthenticated() && belongsToWorkshop(request.resource.data.workshop_id);
     }
     match /payments/{docId} { 
       allow get: if isAuthenticated() && (resource == null || belongsToWorkshop(resource.data.workshop_id)); 
-      allow list: if isAuthenticated() && belongsToWorkshop(resource.data.workshop_id); 
+      allow list: if isAuthenticated(); 
       allow update: if isAuthenticated() && belongsToWorkshop(resource.data.workshop_id);
       allow create: if isAuthenticated() && belongsToWorkshop(request.resource.data.workshop_id);
     }
     
     match /complaints/{docId} {
       allow get: if isAuthenticated() && (resource == null || belongsToWorkshop(resource.data.workshop_id));
-      allow list: if isAuthenticated() && belongsToWorkshop(resource.data.workshop_id);
+      allow list: if isAuthenticated();
       allow create: if isAuthenticated() && belongsToWorkshop(request.resource.data.workshop_id);
       allow update: if isAuthenticated() 
         && (resource == null || belongsToWorkshop(resource.data.workshop_id))
