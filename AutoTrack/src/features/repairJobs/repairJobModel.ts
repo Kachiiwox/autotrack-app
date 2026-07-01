@@ -11,12 +11,21 @@ export interface RepairJob {
   id?: string;
   vehicle_id: string;
   status: RepairJobStatus;
+  total_cost?: number; // Added for basic payment balance tracking
   workshop_id?: string;
   created_at?: any;
   closed_at?: any;
 }
 
 import { trackPendingWrite } from '../../components/SyncStatusContext';
+
+export async function updateRepairJobCost(jobId: string, totalCost: number) {
+  const jobRef = doc(db, REPAIR_JOBS_COLLECTION, jobId);
+  await trackPendingWrite(updateDoc(jobRef, {
+    total_cost: totalCost,
+    updated_at: serverTimestamp()
+  }));
+}
 
 export async function createRepairJob(vehicleId: string, complaints: Omit<Complaint, 'repair_job_id' | 'status' | 'workshop_id' | 'created_at'>[]) {
   if (!complaints || complaints.length === 0) {
