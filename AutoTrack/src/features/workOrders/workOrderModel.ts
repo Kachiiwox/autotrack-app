@@ -1,4 +1,4 @@
-import { collection, query, where, getDocs, addDoc, updateDoc, doc, serverTimestamp, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, updateDoc, doc, serverTimestamp, getDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../../database/firebaseConfig';
 import { WORKSHOP_ID } from '../../constants/config';
 import { COMPLAINTS_COLLECTION, updateComplaintStatus } from '../repairJobs/complaintModel';
@@ -19,6 +19,8 @@ export interface WorkOrder {
   updated_at?: any;
 }
 
+import { trackPendingWrite } from '../../components/SyncStatusContext';
+
 export async function createWorkOrder(complaint_id: string, repair_job_id: string, mechanic_id: string, priority: string = 'Normal'): Promise<string> {
   const workOrderRef = collection(db, WORK_ORDERS_COLLECTION);
   const newOrder: WorkOrder = {
@@ -32,7 +34,7 @@ export async function createWorkOrder(complaint_id: string, repair_job_id: strin
     updated_at: serverTimestamp()
   };
   
-  const docRef = await addDoc(workOrderRef, newOrder);
+  const docRef = await trackPendingWrite(addDoc(workOrderRef, newOrder));
   return docRef.id;
 }
 
@@ -53,12 +55,29 @@ export async function getWorkOrdersByMechanic(mechanic_id: string): Promise<Work
   return orders;
 }
 
+export function subscribeWorkOrdersByMechanic(mechanic_id: string, callback: (orders: WorkOrder[]) => void) {
+  const workOrderRef = collection(db, WORK_ORDERS_COLLECTION);
+  const q = query(
+    workOrderRef, 
+    where('workshop_id', '==', WORKSHOP_ID),
+    where('mechanic_id', '==', mechanic_id)
+  );
+  
+  return onSnapshot(q, { includeMetadataChanges: true }, (snapshot) => {
+    const orders: WorkOrder[] = [];
+    snapshot.forEach(d => {
+      orders.push({ id: d.id, ...d.data() } as WorkOrder);
+    });
+    callback(orders);
+  });
+}
+
 export async function updateWorkOrderStatus(workOrder_id: string, status: WorkOrderStatus) {
   const workOrderRef = doc(db, WORK_ORDERS_COLLECTION, workOrder_id);
-  await updateDoc(workOrderRef, {
+  await trackPendingWrite(updateDoc(workOrderRef, {
     status,
     updated_at: serverTimestamp()
-  });
+  }));
 
   // Cross-module update: sync parent complaint status
   const orderSnapshot = await getDoc(workOrderRef);

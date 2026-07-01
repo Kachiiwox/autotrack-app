@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert, Button } from 'react-native';
 import { getAllMechanics, Mechanic, seedMechanicsIfEmpty } from '../mechanics/mechanicModel';
-import { getWorkOrdersByMechanic, updateWorkOrderStatus, WorkOrder } from './workOrderModel';
+import { subscribeWorkOrdersByMechanic, updateWorkOrderStatus, WorkOrder } from './workOrderModel';
 import { getComplaintById, Complaint } from '../repairJobs/complaintModel';
 
 export default function MechanicTaskList() {
@@ -20,46 +20,40 @@ export default function MechanicTaskList() {
     init();
   }, []);
 
-  const loadTasks = async (mechanicId: string) => {
-    setLoading(true);
-    try {
-      const orders = await getWorkOrdersByMechanic(mechanicId);
-      const tasksWithComplaints = await Promise.all(
-        orders.map(async (order) => {
-          const complaint = await getComplaintById(order.complaint_id);
-          return { order, complaint };
-        })
-      );
-      setTasks(tasksWithComplaints);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    if (selectedMechanic) {
-      loadTasks(selectedMechanic.id!);
-    }
+    if (!selectedMechanic) return;
+    
+    setLoading(true);
+    const unsubscribe = subscribeWorkOrdersByMechanic(selectedMechanic.id!, async (orders) => {
+      // Fetch complaints for the updated orders
+      try {
+        const tasksWithComplaints = await Promise.all(
+          orders.map(async (order) => {
+            const complaint = await getComplaintById(order.complaint_id);
+            return { order, complaint };
+          })
+        );
+        setTasks(tasksWithComplaints);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    return () => unsubscribe();
   }, [selectedMechanic]);
 
-  const handleStartTask = async (orderId: string) => {
-    try {
-      await updateWorkOrderStatus(orderId, 'In Progress');
-      if (selectedMechanic) loadTasks(selectedMechanic.id!);
-    } catch (error: any) {
-      Alert.alert('Error', error.message);
-    }
+  const handleStartTask = (orderId: string) => {
+    updateWorkOrderStatus(orderId, 'In Progress').catch(error => {
+      Alert.alert('Sync Error', error.message);
+    });
   };
 
-  const handleMarkRepaired = async (orderId: string) => {
-    try {
-      await updateWorkOrderStatus(orderId, 'Completed');
-      if (selectedMechanic) loadTasks(selectedMechanic.id!);
-    } catch (error: any) {
-      Alert.alert('Error', error.message);
-    }
+  const handleMarkRepaired = (orderId: string) => {
+    updateWorkOrderStatus(orderId, 'Completed').catch(error => {
+      Alert.alert('Sync Error', error.message);
+    });
   };
 
   if (loading && !selectedMechanic) return <ActivityIndicator style={styles.loader} size="large" />;

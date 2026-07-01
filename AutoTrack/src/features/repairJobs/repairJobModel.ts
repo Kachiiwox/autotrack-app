@@ -16,6 +16,8 @@ export interface RepairJob {
   closed_at?: any;
 }
 
+import { trackPendingWrite } from '../../components/SyncStatusContext';
+
 export async function createRepairJob(vehicleId: string, complaints: Omit<Complaint, 'repair_job_id' | 'status' | 'workshop_id' | 'created_at'>[]) {
   if (!complaints || complaints.length === 0) {
     throw new Error("At least one complaint is required to create a repair job.");
@@ -45,7 +47,7 @@ export async function createRepairJob(vehicleId: string, complaints: Omit<Compla
     });
   });
 
-  await batch.commit();
+  await trackPendingWrite(batch.commit());
   return jobsRef.id;
 }
 
@@ -92,5 +94,5 @@ export async function updateRepairJobStatus(jobId: string, newStatus: RepairJobS
     updateData.closed_at = serverTimestamp();
   }
 
-  await updateDoc(jobRef, updateData);
+  await trackPendingWrite(updateDoc(jobRef, updateData));
 }

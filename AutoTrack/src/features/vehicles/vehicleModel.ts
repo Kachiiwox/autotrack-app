@@ -17,6 +17,8 @@ export interface Vehicle {
   created_at?: any;
 }
 
+import { trackPendingWrite } from '../../components/SyncStatusContext';
+
 export async function createVehicle(data: Omit<Vehicle, 'workshop_id' | 'created_at'>) {
   const vehiclesRef = collection(db, VEHICLES_COLLECTION);
   
@@ -34,11 +36,11 @@ export async function createVehicle(data: Omit<Vehicle, 'workshop_id' | 'created
     }
   }
 
-  const docRef = await addDoc(vehiclesRef, {
+  const docRef = await trackPendingWrite(addDoc(vehiclesRef, {
     ...data,
     workshop_id: WORKSHOP_ID,
     created_at: serverTimestamp()
-  });
+  }));
 
   return docRef.id;
 }
@@ -63,10 +65,10 @@ export async function getVehiclesByCustomer(customerId: string) {
 
 export async function reassignVehicle(vehicleId: string, newCustomerId: string) {
   const vehicleRef = doc(db, VEHICLES_COLLECTION, vehicleId);
-  await updateDoc(vehicleRef, {
+  await trackPendingWrite(updateDoc(vehicleRef, {
     customer_id: newCustomerId,
     updated_at: serverTimestamp() // To track assignment changes
-  });
+  }));
 }
 
 export async function getAllVehicles() {

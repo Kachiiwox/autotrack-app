@@ -1,6 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { initializeFirestore, persistentLocalCache, persistentSingleTabManager, memoryLocalCache } from "firebase/firestore";
+import { Platform } from 'react-native';
 
 const firebaseConfig = {
   apiKey: "AIzaSyBQOLuTJ8tiXlQ2rf5jqW1ag-xy2fno3lc",
@@ -15,10 +16,42 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// TODO: AsyncStorage persistence needs to be properly implemented once real Auth screens are built.
-// Currently falling back to simpler working persistence setup (getAuth) since getReactNativePersistence 
-// is not available in this version of firebase/auth.
+// Auth
 export const auth = getAuth(app);
-export const db = getFirestore(app);
 
+// Firestore Offline Persistence
+// 
+// =====================================================================================
+// WARNING: DATA LOSS RISK ON MOBILE (iOS/Android)
+// =====================================================================================
+// The Firebase JS SDK's `persistentLocalCache` relies on IndexedDB, which works 
+// perfectly on Web to provide true offline-first disk persistence.
+// However, React Native (mobile) does NOT natively support IndexedDB. On mobile, 
+// this setup silently degrades to `memoryLocalCache`.
+// 
+// This means if a mechanic goes offline, creates/edits a complaint, and then 
+// force-closes the app before connectivity is restored, those unsynced writes 
+// WILL BE LOST permanently from memory.
+// 
+// LONG-TERM SOLUTION: 
+// To fulfill the "never lose a customer complaint" core promise on mobile, 
+// we MUST migrate from the Firebase JS SDK (`firebase/firestore`) to 
+// `@react-native-firebase/firestore`, which uses native SQLite bindings under the hood.
+// =====================================================================================
+
+let dbInstance;
+try {
+  dbInstance = initializeFirestore(app, {
+    // Attempt to use persistent cache (IndexedDB). If it fails (e.g. React Native), catch it.
+    localCache: persistentLocalCache({ tabManager: persistentSingleTabManager() })
+  });
+} catch (e) {
+  // Fallback to memory if IndexedDB is missing
+  console.warn("IndexedDB not available for Firestore persistence, falling back to memoryLocalCache", e);
+  dbInstance = initializeFirestore(app, {
+    localCache: memoryLocalCache()
+  });
+}
+
+export const db = dbInstance;
 export default app;

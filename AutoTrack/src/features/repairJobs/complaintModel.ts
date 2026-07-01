@@ -37,13 +37,15 @@ export async function getComplaintsForJob(jobId: string) {
   return complaints;
 }
 
+import { trackPendingWrite } from '../../components/SyncStatusContext';
+
 export async function updateComplaintStatus(complaintId: string, newStatus: ComplaintStatus) {
   // TODO: restrict "Verified" status to senior mechanic/owner role once Auth/roles are built
   const complaintRef = doc(db, COMPLAINTS_COLLECTION, complaintId);
-  await updateDoc(complaintRef, {
+  await trackPendingWrite(updateDoc(complaintRef, {
     status: newStatus,
     updated_at: serverTimestamp()
-  });
+  }));
 }
 
 export async function getComplaintById(complaintId: string): Promise<Complaint | null> {

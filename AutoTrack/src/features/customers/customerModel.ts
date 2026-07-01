@@ -14,6 +14,8 @@ export interface Customer {
   created_at?: any;
 }
 
+import { trackPendingWrite } from '../../components/SyncStatusContext';
+
 export async function createCustomer(data: Omit<Customer, 'workshop_id' | 'created_at'>) {
   const customersRef = collection(db, CUSTOMERS_COLLECTION);
   
@@ -32,11 +34,11 @@ export async function createCustomer(data: Omit<Customer, 'workshop_id' | 'creat
     throw new Error('Phone number is required unless customer is flagged as walk-in.');
   }
 
-  const docRef = await addDoc(customersRef, {
+  const docRef = await trackPendingWrite(addDoc(customersRef, {
     ...data,
     workshop_id: WORKSHOP_ID,
     created_at: serverTimestamp()
-  });
+  }));
 
   return docRef.id;
 }
