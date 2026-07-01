@@ -16,8 +16,26 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Auth
-export const auth = getAuth(app);
+// Auth Configuration
+// We need an uninitialized variable to hold the auth instance
+let authInstance;
+
+if (Platform.OS === 'web') {
+  // Web uses browserLocalPersistence
+  const { initializeAuth, browserLocalPersistence } = require('firebase/auth');
+  authInstance = initializeAuth(app, {
+    persistence: browserLocalPersistence
+  });
+} else {
+  // Mobile uses getReactNativePersistence with AsyncStorage
+  const { initializeAuth, getReactNativePersistence } = require('firebase/auth');
+  const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+  authInstance = initializeAuth(app, {
+    persistence: getReactNativePersistence(AsyncStorage)
+  });
+}
+
+export const auth = authInstance;
 
 // Firestore Offline Persistence
 // 

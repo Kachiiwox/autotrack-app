@@ -5,14 +5,14 @@ import { getComplaintsForJob, updateComplaintStatus, Complaint, ComplaintStatus 
 import { getAllMechanics, seedMechanicsIfEmpty, Mechanic } from '../mechanics/mechanicModel';
 import { createWorkOrder } from '../workOrders/workOrderModel';
 import { recordPayment, getPaymentsForJob, Payment, PaymentMethod, PaymentType } from '../payments/paymentModel';
+import { useAuth } from '@/components/AuthContext';
 
 interface RepairJobDetailProps {
   jobId: string;
 }
 
-const STATUS_OPTIONS: ComplaintStatus[] = ['Open', 'Diagnosed', 'Approved', 'In Progress', 'Repaired', 'Verified', 'Declined'];
-
 export default function RepairJobDetail({ jobId }: RepairJobDetailProps) {
+  const { userProfile } = useAuth();
   const [job, setJob] = useState<RepairJob | null>(null);
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [mechanics, setMechanics] = useState<Mechanic[]>([]);
@@ -24,6 +24,11 @@ export default function RepairJobDetail({ jobId }: RepairJobDetailProps) {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [paymentAmountInput, setPaymentAmountInput] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('Cash');
+
+  const ALL_STATUS_OPTIONS: ComplaintStatus[] = ['Open', 'Diagnosed', 'Approved', 'In Progress', 'Repaired', 'Verified', 'Declined'];
+  const STATUS_OPTIONS = (userProfile?.role === 'Owner' || userProfile?.role === 'Senior Mechanic')
+    ? ALL_STATUS_OPTIONS
+    : ALL_STATUS_OPTIONS.filter(s => s !== 'Verified');
 
   const fetchData = async () => {
     setLoading(true);
@@ -54,7 +59,6 @@ export default function RepairJobDetail({ jobId }: RepairJobDetailProps) {
   }, [jobId]);
 
   const handleUpdateComplaint = async (complaintId: string, newStatus: ComplaintStatus) => {
-    // TODO: restrict "Verified" status to senior mechanic/owner role once Auth/roles are built
     try {
       await updateComplaintStatus(complaintId, newStatus);
       fetchData(); // Refresh list

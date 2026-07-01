@@ -1,30 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert, Button } from 'react-native';
-import { getAllMechanics, Mechanic, seedMechanicsIfEmpty } from '../mechanics/mechanicModel';
 import { subscribeWorkOrdersByMechanic, updateWorkOrderStatus, WorkOrder } from './workOrderModel';
 import { getComplaintById, Complaint } from '../repairJobs/complaintModel';
+import { useAuth } from '@/components/AuthContext';
+import { useRouter } from 'expo-router';
 
 export default function MechanicTaskList() {
-  const [mechanics, setMechanics] = useState<Mechanic[]>([]);
-  const [selectedMechanic, setSelectedMechanic] = useState<Mechanic | null>(null);
+  const { userProfile, logout } = useAuth();
   const [tasks, setTasks] = useState<{ order: WorkOrder, complaint: Complaint | null }[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
-    const init = async () => {
-      await seedMechanicsIfEmpty();
-      const mechs = await getAllMechanics();
-      setMechanics(mechs);
-      setLoading(false);
-    };
-    init();
-  }, []);
-
-  useEffect(() => {
-    if (!selectedMechanic) return;
+    if (!userProfile) return;
     
     setLoading(true);
-    const unsubscribe = subscribeWorkOrdersByMechanic(selectedMechanic.id!, async (orders) => {
+    const unsubscribe = subscribeWorkOrdersByMechanic(userProfile.id!, async (orders) => {
       // Fetch complaints for the updated orders
       try {
         const tasksWithComplaints = await Promise.all(
@@ -42,7 +33,7 @@ export default function MechanicTaskList() {
     });
 
     return () => unsubscribe();
-  }, [selectedMechanic]);
+  }, [userProfile]);
 
   const handleStartTask = (orderId: string) => {
     updateWorkOrderStatus(orderId, 'In Progress').catch(error => {
@@ -56,61 +47,50 @@ export default function MechanicTaskList() {
     });
   };
 
-  if (loading && !selectedMechanic) return <ActivityIndicator style={styles.loader} size="large" />;
+  if (!userProfile) return <ActivityIndicator style={styles.loader} size="large" />;
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>My Tasks Today</Text>
+      <View style={styles.headerRow}>
+        <Text style={styles.title}>My Tasks Today</Text>
+        <Button title="Logout" onPress={logout} color="#e74c3c" />
+      </View>
       
-      {!selectedMechanic ? (
-        <View style={styles.selectorContainer}>
-          <Text style={styles.subtitle}>Select Mechanic (Simulating Login):</Text>
-          {mechanics.map(m => (
-            <TouchableOpacity key={m.id} style={styles.mechBadge} onPress={() => setSelectedMechanic(m)}>
-              <Text style={styles.mechBadgeText}>{m.name} ({m.specialties.join(', ')})</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      ) : (
-        <View style={{ flex: 1 }}>
-          <View style={styles.headerRow}>
-            <Text style={styles.subtitle}>Viewing tasks for: {selectedMechanic.name}</Text>
-            <Button title="Switch Mechanic" onPress={() => { setSelectedMechanic(null); setTasks([]); }} color="#999" />
-          </View>
-          
-          {loading ? (
-            <ActivityIndicator style={styles.loader} size="large" />
-          ) : (
-            <FlatList
-              data={tasks}
-              keyExtractor={(item) => item.order.id!}
-              ListEmptyComponent={<Text style={styles.emptyText}>No tasks assigned yet — check with your supervisor</Text>}
-              renderItem={({ item }) => (
-                <View style={styles.taskCard}>
-                  <Text style={styles.vehicleText}>Job ID: {item.order.repair_job_id}</Text>
-                  <Text style={styles.complaintDesc}>{item.complaint?.description || '[No description]'}</Text>
-                  <Text style={styles.statusText}>Status: {item.order.status}</Text>
-                  
-                  <View style={styles.actionRow}>
-                    <Button 
-                      title="Start" 
-                      color="#208AEF"
-                      disabled={item.order.status !== 'Pending'} 
-                      onPress={() => handleStartTask(item.order.id!)} 
-                    />
-                    <Button 
-                      title="Mark Repaired" 
-                      color="#27ae60"
-                      disabled={item.order.status !== 'In Progress'} 
-                      onPress={() => handleMarkRepaired(item.order.id!)} 
-                    />
-                  </View>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.subtitle}>Viewing tasks for: {userProfile.name} ({userProfile.role})</Text>
+        
+        {loading ? (
+          <ActivityIndicator style={styles.loader} size="large" />
+        ) : (
+          <FlatList
+            data={tasks}
+            keyExtractor={(item) => item.order.id!}
+            ListEmptyComponent={<Text style={styles.emptyText}>No tasks assigned yet — check with your supervisor</Text>}
+            renderItem={({ item }) => (
+              <View style={styles.taskCard}>
+                <Text style={styles.vehicleText}>Job ID: {item.order.repair_job_id}</Text>
+                <Text style={styles.complaintDesc}>{item.complaint?.description || '[No description]'}</Text>
+                <Text style={styles.statusText}>Status: {item.order.status}</Text>
+                
+                <View style={styles.actionRow}>
+                  <Button 
+                    title="Start" 
+                    color="#208AEF"
+                    disabled={item.order.status !== 'Pending'} 
+                    onPress={() => handleStartTask(item.order.id!)} 
+                  />
+                  <Button 
+                    title="Mark Repaired" 
+                    color="#27ae60"
+                    disabled={item.order.status !== 'In Progress'} 
+                    onPress={() => handleMarkRepaired(item.order.id!)} 
+                  />
                 </View>
-              )}
-            />
-          )}
-        </View>
-      )}
+              </View>
+            )}
+          />
+        )}
+      </View>
     </View>
   );
 }

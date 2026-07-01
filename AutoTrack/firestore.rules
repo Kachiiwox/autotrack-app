@@ -1,0 +1,62 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function getUserRecord() {
+      return get(/databases/$(database)/documents/mechanics/$(request.auth.uid)).data;
+    }
+    
+    function hasRole(allowedRoles) {
+      return getUserRecord().role in allowedRoles;
+    }
+    
+    function belongsToWorkshop(resourceWorkshopId) {
+      return getUserRecord().workshop_id == resourceWorkshopId;
+    }
+
+    match /mechanics/{mechanicId} {
+      allow read: if isAuthenticated() && (request.auth.uid == mechanicId || belongsToWorkshop(resource.data.workshop_id));
+      allow create: if isAuthenticated() && request.auth.uid == mechanicId;
+      allow update: if isAuthenticated() && request.auth.uid == mechanicId;
+      allow delete: if false;
+    }
+
+    match /customers/{docId} { 
+      allow read, update: if isAuthenticated() && belongsToWorkshop(resource.data.workshop_id); 
+      allow create: if isAuthenticated() && belongsToWorkshop(request.resource.data.workshop_id);
+    }
+    match /vehicles/{docId} { 
+      allow read, update: if isAuthenticated() && belongsToWorkshop(resource.data.workshop_id); 
+      allow create: if isAuthenticated() && belongsToWorkshop(request.resource.data.workshop_id);
+    }
+    match /repair_jobs/{docId} { 
+      allow read, update: if isAuthenticated() && belongsToWorkshop(resource.data.workshop_id); 
+      allow create: if isAuthenticated() && belongsToWorkshop(request.resource.data.workshop_id);
+    }
+    match /work_orders/{docId} { 
+      allow read, update: if isAuthenticated() && belongsToWorkshop(resource.data.workshop_id); 
+      allow create: if isAuthenticated() && belongsToWorkshop(request.resource.data.workshop_id);
+    }
+    match /payments/{docId} { 
+      allow read, update: if isAuthenticated() && belongsToWorkshop(resource.data.workshop_id); 
+      allow create: if isAuthenticated() && belongsToWorkshop(request.resource.data.workshop_id);
+    }
+    
+    match /complaints/{docId} {
+      allow read: if isAuthenticated() && belongsToWorkshop(resource.data.workshop_id);
+      allow create: if isAuthenticated() && belongsToWorkshop(request.resource.data.workshop_id);
+      allow update: if isAuthenticated() 
+        && belongsToWorkshop(resource.data.workshop_id)
+        && (
+             (request.resource.data.status == 'Verified' && resource.data.status != 'Verified') 
+               ? hasRole(['Owner', 'Senior Mechanic']) 
+               : true
+           );
+      allow delete: if false;
+    }
+  }
+}
