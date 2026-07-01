@@ -30,25 +30,61 @@ export default function RepairJobDetail({ jobId }: RepairJobDetailProps) {
     ? ALL_STATUS_OPTIONS
     : ALL_STATUS_OPTIONS.filter(s => s !== 'Verified');
 
+  const [vehicle, setVehicle] = useState<any>(null);
+  const [workOrders, setWorkOrders] = useState<any[]>([]);
+
   const fetchData = async () => {
     setLoading(true);
     try {
+      console.log('Fetching job...', jobId);
       const jobData = await getRepairJobById(jobId);
       setJob(jobData);
+      
       if (jobData) {
+        console.log('Fetching complaints...');
         const compData = await getComplaintsForJob(jobId);
         setComplaints(compData);
+        
+        console.log('Fetching vehicles...');
+        try {
+          const { getAllVehicles } = await import('../vehicles/vehicleModel');
+          const vehiclesData = await getAllVehicles();
+          const v = vehiclesData.find((v: any) => v.id === jobData.vehicle_id);
+          if (v) setVehicle(v);
+        } catch(e) { console.warn("Vehicle fetch skipped or failed", e); }
+        
+        console.log('Fetching work orders...');
+        try {
+          const { collection, query, where, getDocs } = await import('firebase/firestore');
+          const { db } = await import('../../database/firebaseConfig');
+          const { WORKSHOP_ID } = await import('../../constants/config');
+          const q = query(
+            collection(db, 'work_orders'),
+            where('workshop_id', '==', WORKSHOP_ID),
+            where('repair_job_id', '==', jobId)
+          );
+          const snap = await getDocs(q);
+          const ordersData: any[] = [];
+          snap.forEach(d => ordersData.push({ id: d.id, ...d.data() }));
+          setWorkOrders(ordersData);
+        } catch(e) { console.warn("Work order fetch skipped or failed", e); }
+        
         if (jobData.total_cost !== undefined) {
           setTotalCostInput(jobData.total_cost.toString());
         }
+        
+        console.log('Fetching payments...');
         const paymentsData = await getPaymentsForJob(jobId);
         setPayments(paymentsData);
       }
+      
+      console.log('Fetching mechanics...');
       await seedMechanicsIfEmpty();
       const mechs = await getAllMechanics();
       setMechanics(mechs);
+      
     } catch (error) {
-      console.error(error);
+      console.error("fetchData Error:", error);
     } finally {
       setLoading(false);
     }
