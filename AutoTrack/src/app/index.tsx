@@ -1,7 +1,7 @@
 import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
+import { Platform, StyleSheet, TouchableOpacity, Text, Button, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Link } from 'expo-router';
+import { Link, router } from 'expo-router';
 
 import { AnimatedIcon } from '@/components/animated-icon';
 import { HintRow } from '@/components/hint-row';
@@ -49,12 +49,11 @@ export default function HomeScreen() {
             title="Try editing"
             hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
           />
-          <Link href="/customers" style={{ marginTop: 10, padding: 12, backgroundColor: '#208AEF', color: 'white', borderRadius: 8, textAlign: 'center', fontWeight: 'bold' }}>
-            Go to Customers & Vehicles Module
-          </Link>
-          <Link href="/repair-jobs" style={{ marginTop: 10, padding: 12, backgroundColor: '#EF8A20', color: 'white', borderRadius: 8, textAlign: 'center', fontWeight: 'bold' }}>
-            Go to Repair Jobs Module
-          </Link>
+          <Button title="Go to Customers & Vehicles Module" color="#208AEF" onPress={() => router.push('/customers')} />
+          <View style={{ height: 10 }} />
+          <Button title="Go to Repair Jobs Module" color="#EF8A20" onPress={() => router.push('/repair-jobs')} />
+          <View style={{ height: 10 }} />
+          <Button title="Go to Mechanic Task List" color="#27ae60" onPress={() => router.push('/work-orders')} />
         </ThemedView>
 
         {Platform.OS === 'web' && <WebBadge />}
@@ -96,5 +95,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.four,
     borderRadius: Spacing.four,
+  },
+  buttonLink: {
+    marginTop: 10,
+    padding: 12,
+    backgroundColor: '#208AEF',
+    color: 'white',
+    borderRadius: 8,
+    textAlign: 'center',
+    fontWeight: 'bold',
   },
 });

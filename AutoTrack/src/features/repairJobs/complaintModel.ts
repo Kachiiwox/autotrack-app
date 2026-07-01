@@ -45,3 +45,12 @@ export async function updateComplaintStatus(complaintId: string, newStatus: Comp
     updated_at: serverTimestamp()
   });
 }
+
+export async function getComplaintById(complaintId: string): Promise<Complaint | null> {
+  const complaintRef = doc(db, COMPLAINTS_COLLECTION, complaintId);
+  const snapshot = await import('firebase/firestore').then(m => m.getDoc(complaintRef));
+  if (snapshot.exists()) {
+    return { id: snapshot.id, ...snapshot.data() } as Complaint;
+  }
+  return null;
+}

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, Button, ActivityIndicator, Alert, TouchableOpacity } from 'react-native';
 import { getRepairJobById, updateRepairJobStatus, RepairJob } from './repairJobModel';
 import { getComplaintsForJob, updateComplaintStatus, Complaint, ComplaintStatus } from './complaintModel';
+import { getAllMechanics, seedMechanicsIfEmpty, Mechanic } from '../mechanics/mechanicModel';
+import { createWorkOrder } from '../workOrders/workOrderModel';
 
 interface RepairJobDetailProps {
   jobId: string;
@@ -12,6 +14,8 @@ const STATUS_OPTIONS: ComplaintStatus[] = ['Open', 'Diagnosed', 'Approved', 'In 
 export default function RepairJobDetail({ jobId }: RepairJobDetailProps) {
   const [job, setJob] = useState<RepairJob | null>(null);
   const [complaints, setComplaints] = useState<Complaint[]>([]);
+  const [mechanics, setMechanics] = useState<Mechanic[]>([]);
+  const [selectedMechanics, setSelectedMechanics] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
 
   const fetchData = async () => {
@@ -23,6 +27,9 @@ export default function RepairJobDetail({ jobId }: RepairJobDetailProps) {
         const compData = await getComplaintsForJob(jobId);
         setComplaints(compData);
       }
+      await seedMechanicsIfEmpty();
+      const mechs = await getAllMechanics();
+      setMechanics(mechs);
     } catch (error) {
       console.error(error);
     } finally {
@@ -42,6 +49,29 @@ export default function RepairJobDetail({ jobId }: RepairJobDetailProps) {
     } catch (error: any) {
       Alert.alert('Error', error.message);
     }
+  };
+
+  const handleCreateWorkOrder = async (complaintId: string) => {
+    const mechanicId = selectedMechanics[complaintId];
+    if (!mechanicId) {
+      Alert.alert('Validation Error', 'Please select a mechanic to assign.');
+      return;
+    }
+    try {
+      await createWorkOrder(complaintId, jobId, mechanicId);
+      Alert.alert('Success', 'Work Order created! Mechanic assigned.');
+      // Refresh to potentially show work order status if we link it back later,
+      // but for now, just alerting is fine.
+    } catch (error: any) {
+      Alert.alert('Error', 'Failed to create work order.');
+    }
+  };
+
+  const getFilteredMechanics = (requiredSpecialty?: string) => {
+    if (!requiredSpecialty || requiredSpecialty === 'General') {
+      return mechanics; // Or return all, or those with 'General'
+    }
+    return mechanics.filter(m => m.specialties.includes(requiredSpecialty) || m.specialties.includes('General'));
   };
 
   const handleMarkReadyForRelease = async () => {
@@ -87,6 +117,27 @@ export default function RepairJobDetail({ jobId }: RepairJobDetailProps) {
                 </TouchableOpacity>
               ))}
             </View>
+
+            {item.status === 'Approved' && (
+              <View style={styles.assignmentBox}>
+                <Text style={styles.assignmentLabel}>Assign Mechanic (Specialty: {item.required_specialty || 'Any'})</Text>
+                <View style={styles.mechanicList}>
+                  {getFilteredMechanics(item.required_specialty).map(m => (
+                    <TouchableOpacity 
+                      key={m.id} 
+                      style={[styles.mechanicBadge, selectedMechanics[item.id!] === m.id && styles.activeMechanicBadge]}
+                      onPress={() => setSelectedMechanics({...selectedMechanics, [item.id!]: m.id!})}
+                    >
+                      <Text style={[styles.mechanicText, selectedMechanics[item.id!] === m.id && styles.activeMechanicText]}>{m.name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                  {getFilteredMechanics(item.required_specialty).length === 0 && (
+                    <Text style={styles.helperText}>No mechanics found with this specialty.</Text>
+                  )}
+                </View>
+                <Button title="Create Work Order" onPress={() => handleCreateWorkOrder(item.id!)} color="#EF8A20" />
+              </View>
+            )}
           </View>
         )}
       />
@@ -122,5 +173,12 @@ const styles = StyleSheet.create({
   statusBadgeText: { fontSize: 12, color: '#333' },
   activeBadgeText: { color: 'white' },
   footer: { marginTop: 16, padding: 16, backgroundColor: '#fff', borderTopWidth: 1, borderColor: '#eee' },
-  helperText: { fontSize: 12, color: 'red', textAlign: 'center', marginTop: 8 }
+  helperText: { fontSize: 12, color: 'red', textAlign: 'center', marginTop: 8 },
+  assignmentBox: { marginTop: 16, padding: 12, backgroundColor: '#f0f4f8', borderRadius: 8, borderWidth: 1, borderColor: '#d0e0e3' },
+  assignmentLabel: { fontSize: 14, fontWeight: 'bold', marginBottom: 8, color: '#333' },
+  mechanicList: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 12 },
+  mechanicBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ccc', marginRight: 8, marginBottom: 8 },
+  activeMechanicBadge: { backgroundColor: '#208AEF', borderColor: '#208AEF' },
+  mechanicText: { fontSize: 14, color: '#333' },
+  activeMechanicText: { color: 'white', fontWeight: 'bold' }
 });

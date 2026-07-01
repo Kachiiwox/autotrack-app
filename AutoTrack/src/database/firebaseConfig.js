@@ -15,7 +15,8 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Fallback to simpler working persistence setup (getAuth) since getReactNativePersistence 
+// TODO: AsyncStorage persistence needs to be properly implemented once real Auth screens are built.
+// Currently falling back to simpler working persistence setup (getAuth) since getReactNativePersistence 
 // is not available in this version of firebase/auth.
 export const auth = getAuth(app);
 export const db = getFirestore(app);

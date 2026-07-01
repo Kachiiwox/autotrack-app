@@ -106,6 +106,19 @@ export default function RepairJobIntake() {
             ))}
           </View>
 
+          <Text style={styles.label}>Required Specialty (Optional):</Text>
+          <View style={styles.specialtyContainer}>
+            {['General', 'Electrical', 'Gear/Transmission', 'Panel Beating', 'AC', 'Brakes'].map(spec => (
+              <TouchableOpacity 
+                key={spec}
+                style={[styles.specialtyBadge, complaint.required_specialty === spec && styles.activeSpecialtyBadge]}
+                onPress={() => handleUpdateComplaint(index, 'required_specialty', spec === complaint.required_specialty ? '' : spec)}
+              >
+                <Text style={[styles.specialtyText, complaint.required_specialty === spec && styles.activeSpecialtyText]}>{spec}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
           <View style={styles.mediaButtons}>
             <Button title={complaint.voice_note_url ? "Voice Note (1)" : "Record Voice Note"} onPress={() => handleMockVoiceNote(index)} />
             <Button title={complaint.photo_url ? "Photo (1)" : "Take Photo"} onPress={() => handleMockPhoto(index)} />
@@ -135,6 +148,12 @@ const styles = StyleSheet.create({
   quickTags: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 12 },
   tag: { backgroundColor: '#d0ebff', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, marginRight: 8, marginBottom: 8 },
   tagText: { color: '#005fcc', fontSize: 14 },
+  label: { fontSize: 14, fontWeight: 'bold', marginBottom: 8, color: '#333' },
+  specialtyContainer: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 12 },
+  specialtyBadge: { backgroundColor: '#e0e0e0', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, marginRight: 8, marginBottom: 8 },
+  activeSpecialtyBadge: { backgroundColor: '#EF8A20' },
+  specialtyText: { color: '#333', fontSize: 14 },
+  activeSpecialtyText: { color: 'white', fontWeight: 'bold' },
   mediaButtons: { flexDirection: 'row', justifyContent: 'space-between' },
   actions: { marginTop: 16 }
 });
