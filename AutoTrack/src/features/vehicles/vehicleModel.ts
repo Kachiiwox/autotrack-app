@@ -68,3 +68,17 @@ export async function reassignVehicle(vehicleId: string, newCustomerId: string) 
     updated_at: serverTimestamp() // To track assignment changes
   });
 }
+
+export async function getAllVehicles() {
+  const vehiclesRef = collection(db, VEHICLES_COLLECTION);
+  const q = query(vehiclesRef, where('workshop_id', '==', WORKSHOP_ID));
+  
+  const querySnapshot = await getDocs(q);
+  
+  const vehicles: Vehicle[] = [];
+  querySnapshot.forEach((doc) => {
+    vehicles.push({ id: doc.id, ...doc.data() } as Vehicle);
+  });
+
+  return vehicles;
+}

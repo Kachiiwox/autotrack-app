@@ -52,6 +52,9 @@ export default function HomeScreen() {
           <Link href="/customers" style={{ marginTop: 10, padding: 12, backgroundColor: '#208AEF', color: 'white', borderRadius: 8, textAlign: 'center', fontWeight: 'bold' }}>
             Go to Customers & Vehicles Module
           </Link>
+          <Link href="/repair-jobs" style={{ marginTop: 10, padding: 12, backgroundColor: '#EF8A20', color: 'white', borderRadius: 8, textAlign: 'center', fontWeight: 'bold' }}>
+            Go to Repair Jobs Module
+          </Link>
         </ThemedView>
 
         {Platform.OS === 'web' && <WebBadge />}
